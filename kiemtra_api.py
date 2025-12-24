@@ -2,7 +2,7 @@ import os
 from google import genai
 
 # Thiết lập API Key Tier 1 của bạn
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCifSb7b1ldIDPiSn7Gz2ZCmTm6HtaLbr0"
+os.environ["GOOGLE_API_KEY"] = ""
 
 try:
     client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])

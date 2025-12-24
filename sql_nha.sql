@@ -166,7 +166,60 @@ Tăng sức đề kháng: Sau khi tiêm vắc-xin, hệ miễn dịch của gà 
 Tiết kiệm chi phí: Phòng ngừa bằng vắc-xin có chi phí thấp hơn rất nhiều so với việc điều trị bệnh, đặc biệt trong các trại nuôi có quy mô lớn.'
 );
 
+INSERT INTO benh (ten_benh, dulieubenh) 
+VALUES (
+'Bệnh thương hàn (Salmonella)', 
+'1. Bệnh thương hàn (Salmonella) là bệnh gì?
+Bệnh thương hàn gà là bệnh truyền nhiễm cấp tính của gà do vi khuẩn Salmonella gây ra. Bệnh thường xảy ra ở thể cấp tính ở gà con và mãn tính ở gà lớn. Đây là căn bệnh có tốc độ lây lan nhanh chóng, gây thiệt hại nặng nề cho người chăn nuôi.
 
+2. Nguyên nhân gây bệnh thương hàn gà (Salmonella)?
+Nguyên nhân gây bệnh thương hàn gà (Salmonellosis) là do vi khuẩn Salmonella gây ra. Vi khuẩn này là một loại vi khuẩn gram âm có thể xâm nhập vào cơ thể gà qua nhiều con đường khác nhau. Các nguyên nhân chủ yếu gây bệnh này bao gồm:
+- Ô nhiễm thức ăn và nước uống: Vi khuẩn Salmonella có thể có mặt trong thức ăn hoặc nước uống bị ô nhiễm.
+- Môi trường không vệ sinh: Chuồng trại và khu vực nuôi không sạch sẽ là môi trường lý tưởng cho vi khuẩn sinh sôi.
+- Tiếp xúc trực tiếp: Gà bị nhiễm khi tiếp xúc với gà bệnh hoặc động vật mang vi khuẩn.
+- Sử dụng vắc-xin/thuốc không đúng cách: Làm gia tăng nguy cơ nhiễm bệnh.
+- Côn trùng: Ruồi có thể mang vi khuẩn từ phân gà bệnh sang gà khỏe.
+- Xâm nhập qua da, màng nhầy (mắt, mũi) hoặc đường hô hấp.
+
+3. Triệu chứng bệnh thương hàn (Salmonella)?
+Bệnh thường xuất hiện ở cả gà con và gà lớn.
+
+4. Triệu chứng ở gà con:
+- Phôi không đạp bể vỏ chết, nở rất yếu và chết.
+- Gà bệnh ốm yếu, nhỏ hơn gà khỏe mạnh.
+- Bụng trễ xuống do lòng đỏ không tiêu.
+- Xù lông, xã cánh, nhắm mắt, tụ lại thành từng đám.
+- Phân trắng bết vào hậu môn.
+- Có đốm casein trắng đục trong nhãn cầu hoặc điểm mờ đục trong giác mạc.
+- Có thể viêm khớp.
+- Tỷ lệ chết cao vào giữa tuần 01 đến giữa tuần 3.
+
+5. Triệu chứng ở gà lớn:
+* Thể cấp tính:
+- Gà bất thình lình giảm ăn, mệt mỏi, gục xuống.
+- Xù lông, mào tái nhợt.
+- Giảm sản lượng trứng, trứng giảm khả năng ấp nở.
+- Tỷ lệ chết cao trong 5-10 ngày.
+- Thân nhiệt 41-43°C (kéo dài 2-3 ngày).
+- Tiêu chảy, suy yếu và mất nước.
+* Thể mãn tính:
+- Mặt, mào và yếm tái nhợt. Đẻ ít, không đều hay ngừng đẻ.
+- Trứng có vỏ xù xì, dính máu ở vỏ hay trong lòng đỏ.
+- Bụng xệ xuống do viêm phúc mạc chứa nhiều dịch chất.
+- Phân lúc bón, lúc tiêu chảy. Gà ốm yếu, chết rải rác.
+
+6. Cách điều trị bệnh thương hàn ở gà:
+- Vệ sinh sát trùng: Dùng POVIDINE-10% CAO CẤP liều 10ml/ 3 lít nước.
+- Dùng thuốc (Chọn 1 trong các phác đồ):
++ Phác đồ 1: FLOR 200 (1ml/10kg thể trọng) + GLUCO K-C THẢO DƯỢC (2g/1 lít nước) + BỔ GAN THẬN ĐẶC BIỆT (1ml/1 lít nước).
++ Phác đồ 2: COLISTIN-G750 (1g/4-5kg thể trọng) + CỐM-B.COMPLEX C NEW (1g/2 lít nước) + MEN LACTIC (1g/1 lít nước).
++ Phác đồ 3: G-NEMOVIT @ (1g/3-5kg thể trọng) + BỔ-B.COMPLEX (1g/2 lít nước) + MEN LACZYME (10g/3kg thể trọng).
+
+7. Cách phòng bệnh thương hàn ở gà:
+- Sát trùng: Phun POVIDINE-10% CAO CẤP (10ml/3 lít nước) định kỳ 1-2 lần/tuần. Khử trùng trứng trước khi ấp.
+- Tăng sức đề kháng: Bổ sung NH-ADE-B.COMPLEX (1g/3-4 lít nước) + G-POLYACID (1ml/1 lít nước).
+- Phòng bằng kháng sinh: ENRO-10S (1ml/6-10kg thể trọng) hoặc COLI 102Z (1g/10-14kg thể trọng).'
+);
 
 -- Xóa các cột chi tiết đã thêm
 ALTER TABLE benh 

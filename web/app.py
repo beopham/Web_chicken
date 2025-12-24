@@ -1487,7 +1487,7 @@ except ImportError:
 # 0. CẤU HÌNH HỆ THỐNG
 # =================================================================
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCifSb7b1ldIDPiSn7Gz2ZCmTm6HtaLbr0"
+os.environ["GOOGLE_API_KEY"] = ""
 EMBEDDING_MODEL = "text-embedding-004"
 LLM_MODEL = "gemini-2.0-flash"
 
@@ -1508,7 +1508,7 @@ DB_CONFIG = {
 
 MODEL_PATH = r'D:\Hoc Ki Cuoi\Web_Chicken\web\model\best_model.keras'
 # ✅ Tên class khớp 100% với cột ten_benh trong MySQL
-CLASS_NAMES = ['Bệnh Cầu Trùng Gà (Coccidiosis)', 'Healthy', 'Bệnh Newcastle (Gà Rù)', 'Salmonella']
+CLASS_NAMES = ['Bệnh Cầu Trùng Gà (Coccidiosis)', 'Healthy', 'Bệnh Newcastle (Gà Rù)', 'Bệnh Thương Hàn (Salmonella)']
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
 
