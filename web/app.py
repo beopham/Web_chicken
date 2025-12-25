@@ -214,7 +214,6 @@
 #     app.run(debug=True, host='0.0.0.0', port=5000)
 
 
-
 #
 # import os
 # import io
@@ -1181,8 +1180,6 @@
 #     app.run(debug=True, host='0.0.0.0', port=5000)
 
 
-
-
 # import os
 # import io
 # import re
@@ -1457,9 +1454,6 @@
 #     app.run(debug=True, host='0.0.0.0', port=5000)
 
 
-
-
-
 import os
 import io
 import re
@@ -1508,7 +1502,9 @@ DB_CONFIG = {
 
 MODEL_PATH = r'D:\Hoc Ki Cuoi\Web_Chicken\web\model\best_model.keras'
 # ✅ Tên class khớp 100% với cột ten_benh trong MySQL
-CLASS_NAMES = ['Bệnh Cầu Trùng Gà (Coccidiosis)', 'Healthy', 'Bệnh Newcastle (Gà Rù)', 'Bệnh Thương Hàn (Salmonella)']
+# Đảm bảo thứ tự này khớp với thứ tự các Class khi bạn Train Model
+# Thứ tự chuẩn để khớp với Label của Model AI
+CLASS_NAMES = ['Bệnh Cầu Trùng', 'Gà Khỏe Mạnh', 'Bệnh Gà Rù', 'Bệnh Thương Hàn']
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
 
@@ -1523,6 +1519,7 @@ if tf is not None:
     except Exception as e:
         print(f"!!! LỖI TẢI MÔ HÌNH: {e}")
 
+
 # =================================================================
 # 1. QUẢN LÝ DATABASE & RAG (CẤU TRÚC 3 CỘT)
 # =================================================================
@@ -1535,45 +1532,85 @@ def get_db_connection():
         print(f"Lỗi kết nối database: {err}")
         return None
 
-def load_and_chunk_data():
-    """Đọc dữ liệu từ 3 cột MySQL và nạp vào Vector Database"""
-    global VECTOR_STORE
-    if VECTOR_STORE is not None: return
 
+# def load_and_chunk_data():
+#     """Đọc dữ liệu từ 3 cột MySQL và nạp vào Vector Database"""
+#     global VECTOR_STORE
+#     if VECTOR_STORE is not None: return
+#
+#     conn = get_db_connection()
+#     if not conn: return
+#
+#     try:
+#         cursor = conn.cursor(dictionary=True)
+#         # 🟢 QUAY LẠI TRUY VẤN 3 CỘT CŨ
+#         query = "SELECT ten_benh, dulieubenh FROM benh"
+#         cursor.execute(query)
+#         data = cursor.fetchall()
+#         cursor.close()
+#         conn.close()
+#
+#         texts = []
+#         for row in data:
+#             full_content = f"BỆNH: {row['ten_benh']}\nNỘI DUNG: {row['dulieubenh']}"
+#             texts.append(full_content)
+#
+#         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+#         chunks = text_splitter.create_documents(texts)
+#
+#         embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
+#         VECTOR_STORE = Chroma.from_documents(
+#             documents=chunks,
+#             embedding=embeddings,
+#             persist_directory="./chroma_db"
+#         )
+#         print(">>> ✅ RAG Vector Store (3 cột) đã nạp thành công.")
+#     except Exception as e:
+#         print(f"!!! LỖI RAG: {e}")
+def load_and_chunk_data():
+    global VECTOR_STORE
+    # Bỏ dòng check None để có thể nạp lại khi cần
     conn = get_db_connection()
     if not conn: return
 
     try:
         cursor = conn.cursor(dictionary=True)
-        # 🟢 QUAY LẠI TRUY VẤN 3 CỘT CŨ
         query = "SELECT ten_benh, dulieubenh FROM benh"
         cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        texts = []
+        documents = []
         for row in data:
-            full_content = f"BỆNH: {row['ten_benh']}\nNỘI DUNG: {row['dulieubenh']}"
-            texts.append(full_content)
+            # ✅ QUAN TRỌNG: Lặp lại tên bệnh ở đầu mỗi đoạn dữ liệu
+            # Điều này giúp Vector của "Gà Rù" sẽ khác hẳn Vector của "Cầu Trùng"
+            content = f"THÔNG TIN VỀ {row['ten_benh'].upper()}: {row['dulieubenh']}"
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-        chunks = text_splitter.create_documents(texts)
+            # Chia nhỏ dữ liệu nhưng vẫn giữ ngữ cảnh tên bệnh
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=50)
+            chunks = text_splitter.split_text(content)
+
+            from langchain_core.documents import Document
+            for chunk in chunks:
+                documents.append(Document(page_content=chunk, metadata={"source": row['ten_benh']}))
 
         embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
         VECTOR_STORE = Chroma.from_documents(
-            documents=chunks,
+            documents=documents,
             embedding=embeddings,
             persist_directory="./chroma_db"
         )
-        print(">>> ✅ RAG Vector Store (3 cột) đã nạp thành công.")
+        print(">>> ✅ RAG đã nạp dữ liệu định danh bệnh thành công.")
     except Exception as e:
         print(f"!!! LỖI RAG: {e}")
+
 
 @app.before_request
 def initialize_rag():
     if VECTOR_STORE is None:
         load_and_chunk_data()
+
 
 # =================================================================
 # 2. CHẨN ĐOÁN VÀ CHAT KHỞI TẠO
@@ -1593,6 +1630,7 @@ def process_and_predict(base64_img_string):
     except Exception as e:
         return f"Lỗi: {str(e)}", 0.0
 
+
 @app.route('/diagnose', methods=['POST'])
 def diagnose_and_start_chat():
     user_id = session.get('user_id')
@@ -1609,22 +1647,40 @@ def diagnose_and_start_chat():
                 'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh chuồng trại nhé!"
             })
 
+        # system_prompt = (
+        #     "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ CỦA WEB CHICKEN AI.\n\n"
+        #
+        #     "KỶ LUẬT TRẢ LỜI:\n"
+        #     "1. ƯU TIÊN sử dụng thông tin trong 'DỮ LIỆU THÚ Y'. Nếu dữ liệu bị thiếu một phần, hãy sử dụng kiến thức chuyên môn thú y để bổ sung sao cho chính xác nhất, tuyệt đối không trả lời sai kiến thức y khoa.\n"
+        #     "2. NGỮ CẢNH: Hiểu rằng Newcastle và Gà Rù là cùng một bệnh.\n\n"
+        #
+        #     "QUY ĐỊNH TRÌNH BÀY (GIỮ NGUYÊN Ý BẠN MUỐN):\n"
+        #     "- KHÔNG dùng dấu sao (*), dấu thăng (#) hay in đậm (**).\n"
+        #     "- VIẾT HOA TOÀN BỘ TIÊU ĐỀ MỤC LỚN (Ví dụ: NGUYÊN NHÂN, TRIỆU CHỨNG).\n"
+        #     "- Mỗi ý con bắt đầu bằng dấu gạch ngang (-) và xuống dòng ngay.\n"
+        #     "- Khoảng cách: 2 lần xuống dòng giữa các mục lớn."
+        # )
         system_prompt = (
             "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ CỦA WEB CHICKEN AI.\n\n"
+            "QUY ĐỊNH TRÌNH BÀY (BẮT BUỘC):\n"
+            "- Sử dụng dấu chấm tròn (•) hoặc dấu gạch ngang (-) cho danh sách.\n"
+            "- Sau mỗi dấu (•) hoặc (-), phải có một dấu cách và BẮT BUỘC xuống dòng ngay lập tức.\n"
+            "- Các mục tiêu đề lớn phải VIẾT HOA và cách đoạn bên dưới 1 dòng trống.\n"
+            "- Tuyệt đối không viết hoa toàn bộ văn bản nội dung.\n"
+            "- Không sử dụng ký tự đặc biệt như * hoặc #."
+            "KỶ LUẬT TRẢ LỜI:\n"
+            "1. TRUY XUẤT DỮ LIỆU: Bạn phải ưu tiên tuyệt đối thông tin được cung cấp từ Database (RAG). Đây là nguồn kiến thức chuẩn cho hệ thống này.\n"
+            "2. KHÔNG TỪ CHỐI: Tuyệt đối không trả lời 'không có dữ liệu' hoặc 'tôi không biết'. Nếu Database thiếu một vài chi tiết nhỏ, hãy sử dụng kiến thức thú y chuyên môn để bổ sung và hướng dẫn bà con đầy đủ, tận tâm.\n"
+            # Thêm dòng này vào cuối system_prompt của bạn
+            "TUYỆT ĐỐI KHÔNG lấy thông tin điều trị của bệnh Cầu Trùng để trả lời cho bệnh Gà Rù và ngược lại. "
+            "Mỗi bệnh có phác đồ khác nhau hoàn toàn: Gà Rù dùng vaccine/kháng thể, Cầu Trùng dùng thuốc trị ký sinh trùng."
 
-            "KỶ LUẬT TRẢ LỜI (BẮT BUỘC):\n"
-            "1. CHỈ TRẢ LỜI dựa trên thông tin có trong 'DỮ LIỆU THÚ Y' được cung cấp. Tuyệt đối không tự bịa ra kiến thức ngoài.\n"
-            "2. PHÂN BIỆT BỆNH: Nếu người dùng hỏi về 'Newcastle' hoặc 'Gà rù', hãy hiểu đây là cùng một bệnh và lấy dữ liệu của Newcastle.\n"
-            "3. Nếu thông tin trong dữ liệu bị thiếu, hãy lịch sự báo hệ thống chưa cập nhật phác đồ này.\n\n"
-
-            "QUY ĐỊNH TRÌNH BÀY (NGHIÊM NGẶT):\n"
-            "- TUYỆT ĐỐI KHÔNG sử dụng các ký tự: * (dấu sao), # (dấu thăng), ** (in đậm) trong bất kỳ trường hợp nào.\n"
-            "- SỬ DỤNG CHỮ VIẾT HOA CÓ DẤU cho các tiêu đề mục lớn (Ví dụ: NGUYÊN NHÂN, TRIỆU CHỨNG, ĐIỀU TRỊ).\n"
-            "- CẤU TRÚC DANH SÁCH: Mỗi ý con PHẢI bắt đầu bằng dấu gạch ngang (-) và PHẢI xuống dòng ngay lập tức.\n"
-            "- KHOẢNG CÁCH: Sử dụng 2 lần xuống dòng (\\n\\n) giữa các mục lớn để tạo dòng trống.\n"
-            "- Trình bày ngắn gọn, súc tích, không viết thành đoạn văn dài dặc.\n\n"
-
-            "PHONG CÁCH: Chuyên nghiệp, ngắn gọn, đi thẳng vào vấn đề hỗ trợ người chăn nuôi."
+            "QUY ĐỊNH TRÌNH BÀY:\n"
+            "- KHÔNG VIẾT HOA TOÀN BỘ VĂN BẢN (Để người dân dễ đọc, tránh cảm giác cục súc).\n"
+            "- TIÊU ĐỀ MỤC: Viết hoa có dấu và nằm riêng một dòng (Ví dụ: PHÁC ĐỒ ĐIỀU TRỊ, TRIỆU CHỨNG LÂM SÀNG).\n"
+            "- HÌNH THỨC: Sử dụng dấu gạch ngang (-) cho các ý con, tuyệt đối không dùng *, #, **.\n"
+            "- KHOẢNG CÁCH: Luôn xuống dòng 2 lần giữa các mục lớn để giao diện chat thoáng đãng.\n"
+            "- PHONG CÁCH: Chuyên nghiệp, ngắn gọn nhưng phải đầy đủ các bước xử lý chuồng trại và thuốc men.\n"
         )
 
         chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
@@ -1644,9 +1700,36 @@ def diagnose_and_start_chat():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 # =================================================================
 # 3. CHAT TIẾP THEO (RAG)
 # =================================================================
+
+# @app.route('/chat', methods=['POST'])
+# def handle_followup_chat():
+#     user_id = session.get('user_id')
+#     current_chat = ACTIVE_CHATS.get(user_id)
+#     if not current_chat: return jsonify({'error': 'Phiên chat hết hạn'}), 400
+#
+#     try:
+#         data = request.get_json()
+#         user_question = data.get('question')
+#
+#         # Truy vấn RAG từ cột dulieubenh
+#         rag_docs = VECTOR_STORE.similarity_search(user_question, k=10)
+#         rag_context = "\n---\n".join([doc.page_content for doc in rag_docs])
+#
+#         full_prompt = (
+#             f"DỮ LIỆU THÚ Y:\n{rag_context}\n\n"
+#             f"CÂU HỎI: {user_question}\n\n"
+#             "YÊU CẦU: Dựa vào dữ liệu trên để trả lời. Trình bày rõ ràng, không dùng dấu sao, xuống dòng sau mỗi ý."
+#         )
+#         response = current_chat.send_message(full_prompt)
+#
+#         return jsonify({'success': True, 'response': response.text})
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/chat', methods=['POST'])
 def handle_followup_chat():
@@ -1658,20 +1741,29 @@ def handle_followup_chat():
         data = request.get_json()
         user_question = data.get('question')
 
-        # Truy vấn RAG từ cột dulieubenh
-        rag_docs = VECTOR_STORE.similarity_search(user_question, k=10)
+        rag_docs = VECTOR_STORE.similarity_search(user_question, k=5)
         rag_context = "\n---\n".join([doc.page_content for doc in rag_docs])
 
         full_prompt = (
-            f"DỮ LIỆU THÚ Y:\n{rag_context}\n\n"
-            f"CÂU HỎI: {user_question}\n\n"
-            "YÊU CẦU: Dựa vào dữ liệu trên để trả lời. Trình bày rõ ràng, không dùng dấu sao, xuống dòng sau mỗi ý."
+            f"Bối cảnh dữ liệu từ Database:\n{rag_context}\n\n"
+            f"Câu hỏi của người dân: {user_question}\n\n"
+            "YÊU CẦU: Trình bày câu trả lời rõ ràng. "
+            "Sau mỗi dấu gạch ngang (-) bắt đầu ý mới, BẮT BUỘC phải xuống dòng. "
+            "Không dùng dấu sao (*)."
         )
+
         response = current_chat.send_message(full_prompt)
 
-        return jsonify({'success': True, 'response': response.text})
+        # Tìm bất kỳ dấu gạch ngang nào đứng sau một ký tự (không phải đầu dòng) và thêm xuống dòng
+        clean_response = re.sub(r'([^\n])\s*-\s+', r'\1\n- ', response.text)
+
+        # Xử lý thêm các dấu chấm dính liền với dấu gạch ngang
+        clean_response = clean_response.replace(". -", ".\n- ").replace("; -", ";\n- ")
+
+        return jsonify({'success': True, 'response': clean_response})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 # Các route giao diện giữ nguyên...
 @app.route('/', methods=['GET', 'POST'])
@@ -1686,19 +1778,29 @@ def login_page():
             user = cursor.fetchone()
             conn.close()
             if user:
-                session['loggedin'], session['user_id'], session['username'] = True, user['idTaikhoan'], user['taikhoan']
+                session['loggedin'], session['user_id'], session['username'] = True, user['idTaikhoan'], user[
+                    'taikhoan']
                 return redirect(url_for('trangchu_page'))
     return render_template('login.html')
+
+
+@app.route('/logout')
+def logout_page():
+    session.clear()  # Xóa hết dữ liệu phiên đăng nhập
+    return redirect(url_for('trangchu_page'))
+
 
 @app.route('/trangchu')
 def trangchu_page():
     if 'loggedin' not in session: return redirect(url_for('login_page'))
     return render_template('trangchu.html', username=session.get('username'))
 
+
 @app.route('/phan_loai_benh_ga')
 def phan_loai_benh_ga_page():
     if 'loggedin' not in session: return redirect(url_for('login_page'))
     return render_template('phan_loai_benh_ga.html', username=session.get('username'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

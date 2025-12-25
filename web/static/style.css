@@ -1569,3 +1569,118 @@ select#input-sort {
     width: 48%; /* Tạo cho ảnh chiếm khoảng 48% chiều rộng mỗi cái */
     height: 500px;
 }
+
+/* Tạo khoảng cách giữa tên user và icon logout */
+.logout-icon-btn {
+    margin-left: 20px !important; /* Thay đổi số 20px tùy ý bạn */
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.logout-icon-btn:hover {
+    transform: scale(1.1);
+    color: #8b0000 !important;
+}
+
+.chu_dangnhap {
+    display: block !important;    /* Ép thành khối để căn giữa */
+    width: 100% !important;       /* Chiếm hết chiều ngang */
+    font-family: 'Nunito', sans-serif; /* Font chữ bạn đang dùng */
+    font-size: 35px !important;   /* Độ lớn chữ */
+    font-weight: 800 !important;  /* Độ đậm */
+    color: #333333 !important;    /* Màu chữ xám đậm */
+    text-align: center !important; /* Căn giữa tuyệt đối */
+    padding-bottom: 50px !important; /* Tạo khoảng cách với ô Tài Khoản */
+    text-transform: none;         /* Giữ nguyên kiểu chữ Đăng Nhập */
+}
+
+
+#billboard .container {
+    /* Tạo nền màu trắng nhưng có độ trong suốt (0.2) */
+    background: rgba(255, 255, 255, 0.2);
+
+    /* Hiệu ứng làm mờ ảnh phía sau khung */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    /* Bo tròn góc cho mềm mại giống ảnh mẫu */
+    border-radius: 20px;
+
+    /* Tạo viền trắng mỏng để khung nổi bật hơn */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    /* Đổ bóng nhẹ để tạo độ sâu */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+
+    /* Căn chỉnh lề bên trong */
+    padding: 40px;
+
+    /* Đảm bảo nội dung nằm giữa */
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Chỉnh lại màu chữ cho dễ đọc trên nền mờ */
+#billboard h3, #billboard p {
+    color: #ffffff; /* Hoặc màu đen tùy bạn chọn */
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3); /* Tạo bóng cho chữ để dễ đọc hơn */
+}
+
+#billboard h3 span {
+    color: #ffc107; /* Giữ màu vàng cho dòng quan trọng */
+}
+
+/* Tìm class hiển thị tin nhắn của AI, ví dụ .bot-message hoặc .response-text */
+
+/* Ví dụ class của bạn là .response-text hoặc .bot-message */
+.bot-message {
+    white-space: pre-wrap; /* Quan trọng nhất: Giúp hiển thị đúng dấu xuống dòng */
+    line-height: 1.6;      /* Khoảng cách dòng thoáng hơn */
+    text-align: justify;   /* Căn lề đều hai bên cho đẹp */
+    font-family: 'Nunito', sans-serif;
+}
+
+/* Khung chứa lịch sử chat */
+.chat-history {
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+/* Tin nhắn của AI - Đây là phần quan trọng nhất */
+.ai-response {
+    background-color: #ffffff;
+    border-left: 4px solid #57b846; /* Tạo vạch kẻ màu xanh đặc trưng bên trái */
+    padding: 15px !important;
+    margin-top: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+
+    /* 🟢 CHÌA KHÓA ĐỂ XUỐNG DÒNG VÀ GẠCH ĐẦU DÒNG ĐẸP */
+    white-space: pre-wrap !important;
+    line-height: 1.6;
+    color: #333;
+    font-size: 15px;
+}
+
+/* Tin nhắn của người dùng */
+.user-message {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 15px 15px 0 15px;
+    margin-left: 20%;
+    margin-top: 10px;
+}
+
+/* Làm đậm các tiêu đề mà AI trả về (nếu AI viết hoa) */
+.ai-response strong {
+    color: #2c3e50;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
