@@ -1684,3 +1684,19 @@ select#input-sort {
     margin-top: 10px;
     margin-bottom: 5px;
 }
+.logo {
+    /* Điều chỉnh chiều cao để logo nhỏ lại và vừa vặn với dòng chữ */
+    height: 40px;
+
+    /* Giữ nguyên tỉ lệ ảnh để không bị móp méo */
+    width: auto;
+
+    /* Căn giữa logo theo chiều dọc so với menu */
+    vertical-align: middle;
+
+    /* Tạo khoảng cách bên phải để không dính vào chữ Trang Chủ */
+    margin-right: 20px;
+
+    /* Giúp ảnh sắc nét hơn khi thu nhỏ */
+    object-fit: contain;
+}
