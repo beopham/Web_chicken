@@ -233,3 +233,13 @@ DROP COLUMN dieu_tri_vac_xin;
 
 -- Đảm bảo bạn có cột 'dulieubenh' (kiểu LONGTEXT)
 ALTER TABLE benh ADD COLUMN dulieubenh LONGTEXT;
+CREATE TABLE lich_su_chan_doan (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    idTaikhoan INT, -- Đổi tên cột này cho đồng bộ với bảng user của ông
+    ten_benh VARCHAR(255) NOT NULL,
+    do_tin_cay FLOAT NOT NULL,
+    duong_dan_anh VARCHAR(255),
+    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- CHỖ QUAN TRỌNG: Phải là idTaikhoan mới đúng
+    FOREIGN KEY (idTaikhoan) REFERENCES user(idTaikhoan) 
+);

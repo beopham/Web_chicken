@@ -179,12 +179,20 @@
                 <div class="offcanvas-body">
                     <ul id="navbar"
                         class="navbar-nav text-uppercase justify-content-start justify-content-lg-center align-items-start align-items-lg-center flex-grow-1">
+
                         <li class="nav-item">
-                            <a class="nav-link me-4 active" href="{{ url_for('trangchu_page') }}">Trang Chủ</a>
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'trangchu_page' else '' }}"
+                               href="{{ url_for('trangchu_page') }}">Trang Chủ</a>
                         </li>
+
                         <li class="nav-item">
-                            <a class="nav-link me-4" href="{{ url_for('phan_loai_benh_ga_page') }}">Phân Loại bệnh
-                                Gà</a>
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'phan_loai_benh_ga_page' else '' }}"
+                               href="{{ url_for('phan_loai_benh_ga_page') }}">Phân Loại bệnh Gà</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'lich_su_page' else '' }}"
+                               href="{{ url_for('lich_su_page') }}">Lịch Sử Chẩn Đoán</a>
                         </li>
 
                     </ul>
@@ -206,11 +214,11 @@
                                     </svg>
                                     <span class="fw-bold">{{ username }}</span>
                                 </a>
-                               <a href="{{ url_for('logout_page') }}"
-                                  class="text-danger text-decoration-none d-flex align-items-center logout-icon-btn"
-                                       title="Đăng xuất">
-                                        <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
-                                    </a>
+                                <a href="{{ url_for('logout_page') }}"
+                                   class="text-danger text-decoration-none d-flex align-items-center logout-icon-btn"
+                                   title="Đăng xuất">
+                                    <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
+                                </a>
                                 <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel"
                                      aria-hidden="true">
                                     <div class="modal-dialog modal-sm">
@@ -424,14 +432,6 @@
     </div>
 </section>
 
-
-
-
-
-
-
-
-
 <footer id="footer" class="padding-large">
     <div class="container">
         <div class="row">
@@ -441,14 +441,35 @@
                         <div class="footer-menu">
                             <img src="{{ url_for('static', filename='images_trangchu/logo_Chicken.jpg') }}" alt="logo"
                                  class="img-fluid mb-2" style="height: 50px; width: auto;">
-                            <p>Chuyên cung cấp thông tin, kiến thức về các loại bệnh ở gà, cách nhận biết sức khỏe qua phân gà và kỹ thuật chăm sóc gia cầm hiệu quả nhất cho người chăn nuôi.</p>
+                            <p>Chuyên cung cấp thông tin, kiến thức về các loại bệnh ở gà, cách nhận biết sức khỏe qua
+                                phân gà và kỹ thuật chăm sóc gia cầm hiệu quả nhất cho người chăn nuôi.</p>
                             <div class="social-links">
                                 <ul class="d-flex list-unstyled">
-                                    <li><a href="#"><svg class="facebook"><use xlink:href="#facebook"/></svg></a></li>
-                                    <li><a href="#"><svg class="instagram"><use xlink:href="#instagram"/></svg></a></li>
-                                    <li><a href="#"><svg class="twitter"><use xlink:href="#twitter"/></svg></a></li>
-                                    <li><a href="#"><svg class="linkedin"><use xlink:href="#linkedin"/></svg></a></li>
-                                    <li><a href="#"><svg class="youtube"><use xlink:href="#youtube"/></svg></a></li>
+                                    <li><a href="#">
+                                        <svg class="facebook">
+                                            <use xlink:href="#facebook"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="instagram">
+                                            <use xlink:href="#instagram"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="twitter">
+                                            <use xlink:href="#twitter"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="linkedin">
+                                            <use xlink:href="#linkedin"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="youtube">
+                                            <use xlink:href="#youtube"/>
+                                        </svg>
+                                    </a></li>
                                 </ul>
                             </div>
                         </div>
@@ -461,7 +482,8 @@
                                 <li class="menu-item mb-1"><a href="#">Trang chủ</a></li>
                                 <li class="menu-item mb-1"><a href="#">Về chúng tôi</a></li>
                                 <li class="menu-item mb-1"><a href="#">Phân loại bệnh gà</a></li>
-                                <li class="menu-item mb-1"><a href="#" style="color: #ffc107; font-weight: bold;">Nhận biết qua phân gà</a></li>
+                                <li class="menu-item mb-1"><a href="#" style="color: #ffc107; font-weight: bold;">Nhận
+                                    biết qua phân gà</a></li>
                                 <li class="menu-item mb-1"><a href="#">Liên hệ</a></li>
                             </ul>
                         </div>
@@ -503,202 +525,6 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.js"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='js_trangchu/script.js') }}"></script>
 <script src="{{ url_for('static', filename='js_trangchu/ok.js') }}"></script>
-
-<!--  <script>-->
-<!--    document.addEventListener('DOMContentLoaded', function() {-->
-<!--        const diagnoseButton = document.getElementById('diagnoseButton');-->
-<!--        const imageUpload = document.getElementById('imageUpload');-->
-<!--        const imagePreview = document.getElementById('imagePreview');-->
-<!--        const resultContainer = document.getElementById('resultContainer');-->
-<!--        const predictedClassSpan = document.getElementById('predictedClass');-->
-<!--        const confidenceScoreSpan = document.getElementById('confidenceScore');-->
-
-<!--        let imageBase64Data = null; // Biến lưu trữ chuỗi Base64-->
-
-<!--        // 1. Xử lý Xem trước ảnh và Chuyển sang Base64-->
-<!--        imageUpload.addEventListener('change', function() {-->
-<!--            if (this.files && this.files[0]) {-->
-<!--                const file = this.files[0];-->
-<!--                const reader = new FileReader();-->
-
-<!--                reader.onload = function(e) {-->
-<!--                    // Xem trước ảnh-->
-<!--                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Xem trước ảnh" style="max-width: 100%; max-height: 150px; object-fit: contain;">`;-->
-
-<!--                    // Lưu dữ liệu Base64 để gửi lên server-->
-<!--                    imageBase64Data = e.target.result;-->
-<!--                    diagnoseButton.disabled = false;-->
-<!--                    resultContainer.classList.add('d-none'); // Ẩn kết quả cũ-->
-<!--                }-->
-<!--                reader.readAsDataURL(file); // Đọc file thành chuỗi Base64-->
-<!--            } else {-->
-<!--                imagePreview.innerHTML = '<p class="text-muted">Xem trước ảnh tải lên</p>';-->
-<!--                diagnoseButton.disabled = true;-->
-<!--                imageBase64Data = null;-->
-<!--            }-->
-<!--        });-->
-
-<!--        // 2. Xử lý khi nhấn nút Chẩn đoán (Gửi AJAX)-->
-<!--        diagnoseButton.addEventListener('click', async function() {-->
-<!--            if (!imageBase64Data) {-->
-<!--                alert("Vui lòng chọn một ảnh để chẩn đoán.");-->
-<!--                return;-->
-<!--            }-->
-
-<!--            // Hiển thị trạng thái đang tải-->
-<!--            diagnoseButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang chẩn đoán...';-->
-<!--            diagnoseButton.disabled = true;-->
-
-<!--            try {-->
-<!--                // Gửi dữ liệu Base64 dưới dạng JSON đến Flask API /diagnose-->
-<!--                const response = await fetch('/diagnose', {-->
-<!--                    method: 'POST',-->
-<!--                    headers: {-->
-<!--                        'Content-Type': 'application/json' // ĐÃ THÊM LẠI DÒNG NÀY-->
-<!--                    },-->
-<!--                    body: JSON.stringify({ image: imageBase64Data })-->
-<!--                });-->
-
-<!--                const result = await response.json();-->
-
-<!--                if (response.ok && result.success) {-->
-<!--                    // Cập nhật kết quả thành công-->
-<!--                    predictedClassSpan.textContent = result.prediction.disease;-->
-<!--                    confidenceScoreSpan.textContent = result.prediction.confidence;-->
-<!--                    resultContainer.classList.remove('d-none');-->
-<!--                } else {-->
-<!--                    // Xử lý lỗi từ server (Ví dụ: lỗi mô hình, lỗi đăng nhập)-->
-<!--                    alert('Lỗi chẩn đoán: ' + (result.message || result.error || 'Lỗi không xác định'));-->
-<!--                    console.error('Server error:', result);-->
-<!--                }-->
-
-<!--            } catch (error) {-->
-<!--                console.error('Lỗi khi gửi yêu cầu:', error);-->
-<!--                alert('Đã xảy ra lỗi kết nối mạng. Vui lòng thử lại.');-->
-<!--            } finally {-->
-<!--                // Khôi phục nút-->
-<!--                diagnoseButton.innerHTML = 'Chẩn đoán (AI)';-->
-<!--                diagnoseButton.disabled = false;-->
-<!--            }-->
-<!--        });-->
-
-<!--        // Vô hiệu hóa nút ban đầu-->
-<!--        diagnoseButton.disabled = true;-->
-<!--    });-->
-
-
-<!--    // Gắn hàm xử lý sự kiện cho nút "Gửi"-->
-<!--document.getElementById('sendChatButton').addEventListener('click', handleSendChat);-->
-
-<!--// Gắn hàm xử lý sự kiện cho phím Enter trong ô nhập liệu-->
-<!--document.getElementById('followUpQuestion').addEventListener('keypress', (e) => {-->
-<!--    // Kiểm tra nếu phím được nhấn là 'Enter' (mã 13 hoặc 'Enter')-->
-<!--    if (e.key === 'Enter') {-->
-<!--        // Ngăn chặn hành vi mặc định (ví dụ: gửi form)-->
-<!--        e.preventDefault();-->
-<!--        handleSendChat();-->
-<!--    }-->
-<!--});-->
-
-
-<!--/**-->
-<!-- * Xử lý việc gửi câu hỏi tiếp theo đến backend API /chat.-->
-<!-- * Hàm này chịu trách nhiệm hiển thị tin nhắn người dùng, gọi API,-->
-<!-- * và hiển thị phản hồi của AI.-->
-<!-- */-->
-<!--async function handleSendChat() {-->
-<!--    const followUpQuestion = document.getElementById('followUpQuestion');-->
-<!--    const chatHistory = document.getElementById('chatHistory');-->
-<!--    const sendButton = document.getElementById('sendChatButton');-->
-
-<!--    // Lấy câu hỏi, loại bỏ khoảng trắng dư thừa-->
-<!--    const question = followUpQuestion.value.trim();-->
-
-<!--    if (!question) return;-->
-
-<!--    // =========================================================-->
-<!--    // 1. HIỂN THỊ CÂU HỎI CỦA NGƯỜI DÙNG & CHUẨN BỊ-->
-<!--    // =========================================================-->
-
-<!--    // Tạo và hiển thị tin nhắn của người dùng-->
-<!--    const userMessageElement = document.createElement('div');-->
-<!--    userMessageElement.className = 'user-message text-end p-2 mt-2 rounded bg-info text-white';-->
-<!--    userMessageElement.innerHTML = `<strong>Bạn:</strong> ${question}`;-->
-<!--    chatHistory.appendChild(userMessageElement);-->
-
-<!--    // Xóa nội dung input và vô hiệu hóa các điều khiển-->
-<!--    followUpQuestion.value = '';-->
-<!--    followUpQuestion.disabled = true;-->
-<!--    sendButton.disabled = true;-->
-
-<!--    // Hiển thị trạng thái đang gõ (Typing Indicator)-->
-<!--    const typingIndicator = document.createElement('div');-->
-<!--    typingIndicator.className = 'ai-response p-2 mt-2 rounded bg-light';-->
-<!--    typingIndicator.innerHTML = 'AI Chuyên gia đang gõ...';-->
-<!--    chatHistory.appendChild(typingIndicator);-->
-
-<!--    // Cuộn xuống cuối để thấy tin nhắn mới nhất-->
-<!--    chatHistory.scrollTop = chatHistory.scrollHeight;-->
-
-<!--    // =========================================================-->
-<!--    // 2. GỌI API /chat (Sử dụng RAG và Gemini LLM)-->
-<!--    // =========================================================-->
-<!--    try {-->
-<!--        const response = await fetch('/chat', {-->
-<!--            method: 'POST',-->
-<!--            headers: {-->
-<!--                'Content-Type': 'application/json',-->
-<!--            },-->
-<!--            // Gửi câu hỏi của người dùng-->
-<!--            body: JSON.stringify({ question: question }),-->
-<!--        });-->
-
-<!--        const result = await response.json();-->
-
-<!--        // 3. XÓA TRẠNG THÁI ĐANG GÕ-->
-<!--        typingIndicator.remove();-->
-
-<!--        // =====================================================-->
-<!--        // 4. HIỂN THỊ PHẢN HỒI-->
-<!--        // =====================================================-->
-
-<!--        const aiResponseElement = document.createElement('div');-->
-<!--        aiResponseElement.className = 'ai-response p-2 mt-2 rounded';-->
-
-<!--        if (result.success) {-->
-<!--            aiResponseElement.classList.add('bg-light');-->
-<!--            // Thêm phản hồi của AI (có thể có markdown từ Gemini)-->
-<!--            aiResponseElement.innerHTML = `<strong>AI Chuyên gia:</strong> ${result.response}`;-->
-<!--        } else {-->
-<!--            // Xử lý lỗi từ Server (ví dụ: chưa khởi tạo chat, lỗi RAG)-->
-<!--            aiResponseElement.classList.add('bg-danger', 'text-white');-->
-<!--            aiResponseElement.innerHTML = `<strong>Lỗi:</strong> ${result.error || "Không nhận được phản hồi hợp lệ."}`;-->
-<!--        }-->
-
-<!--        chatHistory.appendChild(aiResponseElement);-->
-
-<!--    } catch (error) {-->
-<!--        console.error('Lỗi khi gọi API /chat:', error);-->
-
-<!--        // Xóa trạng thái đang gõ nếu có lỗi kết nối-->
-<!--        if(document.body.contains(typingIndicator)) {-->
-<!--            typingIndicator.remove();-->
-<!--        }-->
-
-<!--        const errorElement = document.createElement('div');-->
-<!--        errorElement.className = 'ai-response p-2 mt-2 rounded bg-danger text-white';-->
-<!--        errorElement.innerHTML = `<strong>Lỗi kết nối:</strong> Không thể kết nối đến máy chủ.`;-->
-<!--        chatHistory.appendChild(errorElement);-->
-
-<!--    } finally {-->
-<!--        // Bật lại các điều khiển và cuộn xuống cuối-->
-<!--        followUpQuestion.disabled = false;-->
-<!--        sendButton.disabled = false;-->
-<!--        followUpQuestion.focus(); // Tập trung lại vào ô nhập liệu-->
-<!--        chatHistory.scrollTop = chatHistory.scrollHeight;-->
-<!--    }-->
-<!--}-->
-<!--</script>-->
 
 
 <script>

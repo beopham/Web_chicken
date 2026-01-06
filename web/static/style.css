@@ -1700,3 +1700,20 @@ select#input-sort {
     /* Giúp ảnh sắc nét hơn khi thu nhỏ */
     object-fit: contain;
 }
+/* Chỉnh font size cho tiêu đề trong section lịch sử */
+section .container h2.text-center.mb-4 {
+    font-size: 30px; /* Bạn có thể thay đổi số này cho vừa ý */
+    text-transform: uppercase; /* Giữ nguyên chữ in hoa */
+}
+
+/* Hiệu ứng khi di chuột qua các dòng trong bảng */
+.table-hover tbody tr:hover {
+    background-color: #f1f1f1 !important; /* Màu nền khi hover (xám nhạt) */
+    cursor: pointer; /* Biến con trỏ thành hình bàn tay */
+    transition: background-color 0.2s ease; /* Hiệu ứng mượt mà */
+}
+
+/* Tùy chỉnh thêm để chữ không bị lệch khi hover */
+.table-hover tbody tr {
+    transition: all 0.2s;
+}

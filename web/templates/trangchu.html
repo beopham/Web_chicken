@@ -179,12 +179,20 @@
                 <div class="offcanvas-body">
                     <ul id="navbar"
                         class="navbar-nav text-uppercase justify-content-start justify-content-lg-center align-items-start align-items-lg-center flex-grow-1">
+
                         <li class="nav-item">
-                            <a class="nav-link me-4 active" href="{{ url_for('trangchu_page') }}">Trang Chủ</a>
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'trangchu_page' else '' }}"
+                               href="{{ url_for('trangchu_page') }}">Trang Chủ</a>
                         </li>
+
                         <li class="nav-item">
-                            <a class="nav-link me-4" href="{{ url_for('phan_loai_benh_ga_page') }}">Phân Loại bệnh
-                                Gà</a>
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'phan_loai_benh_ga_page' else '' }}"
+                               href="{{ url_for('phan_loai_benh_ga_page') }}">Phân Loại bệnh Gà</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link me-4 {{ 'active' if request.endpoint == 'lich_su_page' else '' }}"
+                               href="{{ url_for('lich_su_page') }}">Lịch Sử Chẩn Đoán</a>
                         </li>
 
                     </ul>
@@ -206,11 +214,11 @@
                                     </svg>
                                     <span class="fw-bold">{{ username }}</span>
                                 </a>
-                               <a href="{{ url_for('logout_page') }}"
-                                  class="text-danger text-decoration-none d-flex align-items-center logout-icon-btn"
-                                       title="Đăng xuất">
-                                        <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
-                                    </a>
+                                <a href="{{ url_for('logout_page') }}"
+                                   class="text-danger text-decoration-none d-flex align-items-center logout-icon-btn"
+                                   title="Đăng xuất">
+                                    <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
+                                </a>
                                 <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel"
                                      aria-hidden="true">
                                     <div class="modal-dialog modal-sm">
@@ -649,14 +657,35 @@
                         <div class="footer-menu">
                             <img src="{{ url_for('static', filename='images_trangchu/logo_Chicken.jpg') }}" alt="logo"
                                  class="img-fluid mb-2" style="height: 50px; width: auto;">
-                            <p>Chuyên cung cấp thông tin, kiến thức về các loại bệnh ở gà, cách nhận biết sức khỏe qua phân gà và kỹ thuật chăm sóc gia cầm hiệu quả nhất cho người chăn nuôi.</p>
+                            <p>Chuyên cung cấp thông tin, kiến thức về các loại bệnh ở gà, cách nhận biết sức khỏe qua
+                                phân gà và kỹ thuật chăm sóc gia cầm hiệu quả nhất cho người chăn nuôi.</p>
                             <div class="social-links">
                                 <ul class="d-flex list-unstyled">
-                                    <li><a href="#"><svg class="facebook"><use xlink:href="#facebook"/></svg></a></li>
-                                    <li><a href="#"><svg class="instagram"><use xlink:href="#instagram"/></svg></a></li>
-                                    <li><a href="#"><svg class="twitter"><use xlink:href="#twitter"/></svg></a></li>
-                                    <li><a href="#"><svg class="linkedin"><use xlink:href="#linkedin"/></svg></a></li>
-                                    <li><a href="#"><svg class="youtube"><use xlink:href="#youtube"/></svg></a></li>
+                                    <li><a href="#">
+                                        <svg class="facebook">
+                                            <use xlink:href="#facebook"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="instagram">
+                                            <use xlink:href="#instagram"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="twitter">
+                                            <use xlink:href="#twitter"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="linkedin">
+                                            <use xlink:href="#linkedin"/>
+                                        </svg>
+                                    </a></li>
+                                    <li><a href="#">
+                                        <svg class="youtube">
+                                            <use xlink:href="#youtube"/>
+                                        </svg>
+                                    </a></li>
                                 </ul>
                             </div>
                         </div>
@@ -669,7 +698,8 @@
                                 <li class="menu-item mb-1"><a href="#">Trang chủ</a></li>
                                 <li class="menu-item mb-1"><a href="#">Về chúng tôi</a></li>
                                 <li class="menu-item mb-1"><a href="#">Phân loại bệnh gà</a></li>
-                                <li class="menu-item mb-1"><a href="#" style="color: #ffc107; font-weight: bold;">Nhận biết qua phân gà</a></li>
+                                <li class="menu-item mb-1"><a href="#" style="color: #ffc107; font-weight: bold;">Nhận
+                                    biết qua phân gà</a></li>
                                 <li class="menu-item mb-1"><a href="#">Liên hệ</a></li>
                             </ul>
                         </div>

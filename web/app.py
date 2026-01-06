@@ -76,6 +76,45 @@ def get_db_connection():
         print(f"Lỗi kết nối database: {err}")
         return None
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        tk = request.form.get('taikhoan')
+        mk = request.form.get('mk')
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                # 1. Kiểm tra tài khoản đã tồn tại chưa
+                cursor.execute("SELECT * FROM user WHERE taikhoan = %s", (tk,))
+                existing_user = cursor.fetchone()
+
+                if existing_user:
+                    return render_template('register.html', error="Tài khoản này đã tồn tại!")
+
+                # 2. Nếu không trùng, thực hiện chèn dữ liệu
+                sql = "INSERT INTO user (taikhoan, matkhau) VALUES (%s, %s)"
+                cursor.execute(sql, (tk, mk))
+                conn.commit()
+
+                # --- ĐOẠN SỬA LẠI Ở ĐÂY ---
+                # Không dùng redirect, không dùng script chuyển trang.
+                # Trả về chính trang register.html kèm thông báo thành công.
+                return render_template('register.html', success="Đăng ký tài khoản thành công! Dữ liệu đã được lưu.")
+                # --------------------------
+
+            except Exception as e:
+                return f"Lỗi hệ thống: {e}"
+            finally:
+                cursor.close()
+                conn.close()
+
+    return render_template('register.html')
+
+
+
+
 def load_and_chunk_data():
     """Đọc dữ liệu từ 3 cột MySQL và nạp vào Vector Database với định danh bệnh"""
     global VECTOR_STORE
@@ -142,30 +181,123 @@ def process_and_predict(base64_img_string):
         return f"Lỗi: {str(e)}", 0.0
 
 
+# @app.route('/diagnose', methods=['POST'])
+# def diagnose_and_start_chat():
+#     user_id = session.get('user_id')
+#     if not user_id: return jsonify({'error': 'Vui lòng đăng nhập'}), 401
+#
+#     try:
+#         data = request.get_json()
+#         predicted_name, confidence = process_and_predict(data.get('image'))
+#
+#         if predicted_name == "Healthy":
+#             return jsonify({
+#                 'success': True,
+#                 'prediction': {'disease': 'Khỏe mạnh', 'confidence': f'{confidence:.2f}%'},
+#                 'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh chuồng trại nhé!"
+#             })
+#
+#
+#         system_prompt = (
+#             "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ ĐẮC LỰC CỦA WEB CHICKEN AI.\n\n"
+#
+#             "KỶ LUẬT TRẢ LỜI (TRỊNH TRỌNG):\n"
+#             "1. TUYỆT ĐỐI không lấy râu ông nọ chắp cằm bà kia. Bệnh Gà Rù (Newcastle) và Cầu Trùng có phác đồ khác biệt hoàn toàn, không được nhầm lẫn.\n"
+#             "2. ƯU TIÊN thông tin từ Database (RAG). Nếu thiếu, hãy dùng kiến thức chuyên môn để bổ sung đầy đủ, không được từ chối trả lời bà con.\n\n"
+#
+#             "QUY ĐỊNH TRÌNH BÀY (ĐỂ GIAO DIỆN SẠCH GỌN):\n"
+#             "- TIÊU ĐỀ MỤC: Viết hoa có dấu, nằm riêng 1 dòng. Cách đoạn dưới 1 dòng trống.\n"
+#             "- DANH SÁCH: Mỗi ý con bắt đầu bằng dấu gạch ngang (-). \n"
+#             "- XUỐNG DÒNG: Sau mỗi dấu (-) BẮT BUỘC phải xuống dòng ngay lập tức. Mỗi dòng chỉ chứa 1 thông tin.\n"
+#             "- KHOẢNG CÁCH: Xuống dòng 2 lần giữa các mục lớn (Ví dụ: TRIỆU CHỨNG và PHÁC ĐỒ).\n"
+#             "- CẤM: Không dùng các ký tự *, #, ** hoặc dấu chấm tròn (•) để tránh lỗi hiển thị HTML.\n"
+#             "- PHONG CÁCH: Thân thiện với nông dân, chuyên nghiệp, ngắn gọn, rõ ràng."
+#         )
+#
+#
+#         chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
+#         ACTIVE_CHATS[user_id] = chat
+#
+#         initial_greeting = (
+#             f"Kết quả: Gà có khả năng mắc {predicted_name} ({confidence:.2f}%). "
+#             f"\n\nChào bạn, tôi là bác sĩ AI. Bạn có muốn tìm hiểu chi tiết triệu chứng và cách điều trị bệnh {predicted_name} ngay không?"
+#         )
+#
+#         return jsonify({
+#             'success': True,
+#             'prediction': {'disease': predicted_name, 'confidence': f'{confidence:.2f}%'},
+#             'initial_chat_response': initial_greeting
+#         })
+#
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+
 @app.route('/diagnose', methods=['POST'])
 def diagnose_and_start_chat():
     user_id = session.get('user_id')
-    if not user_id: return jsonify({'error': 'Vui lòng đăng nhập'}), 401
+    if not user_id:
+        return jsonify({'error': 'Vui lòng đăng nhập'}), 401
 
     try:
         data = request.get_json()
-        predicted_name, confidence = process_and_predict(data.get('image'))
+        image_base64 = data.get('image')
+        if not image_base64:
+            return jsonify({'error': 'Không nhận được dữ liệu ảnh'}), 400
 
-        if predicted_name == "Healthy":
+        # 1. GỌI MODEL AI DỰ ĐOÁN
+        predicted_name, confidence = process_and_predict(image_base64)
+
+        # 2. XỬ LÝ LƯU ẢNH VÀ LƯU DATABASE
+        conn = get_db_connection()
+        filename = ""
+        if conn:
+            try:
+                cursor = conn.cursor()
+
+                # Giải mã ảnh từ Base64
+                img_data = re.sub('^data:image/.+;base64,', '', image_base64)
+                img_bytes = base64.b64decode(img_data)
+
+                # Tạo tên file duy nhất để không bị trùng (dùng timestamp)
+                import time
+                filename = f"chandoan_{user_id}_{int(time.time())}.jpg"
+                file_path = os.path.join('static/uploads', filename)
+
+                # Tạo thư mục static/uploads nếu chưa tồn tại
+                if not os.path.exists('static/uploads'):
+                    os.makedirs('static/uploads')
+
+                # Lưu file ảnh vật lý
+                with open(file_path, 'wb') as f:
+                    f.write(img_bytes)
+
+                # Thực hiện Insert vào bảng lich_su_chan_doan
+                # Chia confidence cho 100 nếu bạn muốn lưu dạng 0.92 thay vì 92.0
+                sql = """INSERT INTO lich_su_chan_doan 
+                         (idTaikhoan, ten_benh, do_tin_cay, duong_dan_anh, ngay_tao) 
+                         VALUES (%s, %s, %s, %s, NOW())"""
+                cursor.execute(sql, (user_id, predicted_name, float(confidence / 100), filename))
+                conn.commit()
+                cursor.close()
+                conn.close()
+            except Exception as db_e:
+                print(f"Lỗi Database: {db_e}")
+                # Vẫn tiếp tục chạy để trả về kết quả AI cho người dùng dù lưu DB lỗi
+
+        # 3. LOGIC TRẢ LỜI CỦA GEMINI (GIỮ NGUYÊN NHƯ BẠN VIẾT)
+        if predicted_name == "Gà Khỏe Mạnh":
             return jsonify({
                 'success': True,
                 'prediction': {'disease': 'Khỏe mạnh', 'confidence': f'{confidence:.2f}%'},
                 'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh chuồng trại nhé!"
             })
 
-
         system_prompt = (
             "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ ĐẮC LỰC CỦA WEB CHICKEN AI.\n\n"
-
             "KỶ LUẬT TRẢ LỜI (TRỊNH TRỌNG):\n"
             "1. TUYỆT ĐỐI không lấy râu ông nọ chắp cằm bà kia. Bệnh Gà Rù (Newcastle) và Cầu Trùng có phác đồ khác biệt hoàn toàn, không được nhầm lẫn.\n"
             "2. ƯU TIÊN thông tin từ Database (RAG). Nếu thiếu, hãy dùng kiến thức chuyên môn để bổ sung đầy đủ, không được từ chối trả lời bà con.\n\n"
-
             "QUY ĐỊNH TRÌNH BÀY (ĐỂ GIAO DIỆN SẠCH GỌN):\n"
             "- TIÊU ĐỀ MỤC: Viết hoa có dấu, nằm riêng 1 dòng. Cách đoạn dưới 1 dòng trống.\n"
             "- DANH SÁCH: Mỗi ý con bắt đầu bằng dấu gạch ngang (-). \n"
@@ -174,7 +306,6 @@ def diagnose_and_start_chat():
             "- CẤM: Không dùng các ký tự *, #, ** hoặc dấu chấm tròn (•) để tránh lỗi hiển thị HTML.\n"
             "- PHONG CÁCH: Thân thiện với nông dân, chuyên nghiệp, ngắn gọn, rõ ràng."
         )
-
 
         chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
         ACTIVE_CHATS[user_id] = chat
@@ -191,7 +322,71 @@ def diagnose_and_start_chat():
         })
 
     except Exception as e:
+        print(f"Lỗi hệ thống: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/lich-su')
+def lich_su_page():
+    # 1. Kiểm tra đăng nhập để bảo mật trang
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login_page'))
+
+    # 2. Kết nối DB và lấy dữ liệu lịch sử của riêng người dùng này
+    conn = get_db_connection()
+    ds_lich_su = []
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Truy vấn lấy dữ liệu từ bảng lịch sử chẩn đoán
+            query = """SELECT ten_benh, do_tin_cay, duong_dan_anh, ngay_tao 
+                       FROM lich_su_chan_doan 
+                       WHERE idTaikhoan = %s 
+                       ORDER BY ngay_tao DESC"""
+            cursor.execute(query, (user_id,))
+            ds_lich_su = cursor.fetchall()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Lỗi truy vấn lịch sử: {e}")
+
+    # 3. Trả dữ liệu về cho file HTML
+    # QUAN TRỌNG: Thêm username=session.get('username') để hiện tên người dùng trên Navbar
+    return render_template(
+        'lich_su.html',
+        lich_su=ds_lich_su,
+        username=session.get('username')
+    )
+# @app.route('/lich-su')
+# def lich_su_page():
+#     # 1. Kiểm tra đăng nhập
+#     user_id = session.get('user_id')
+#     if not user_id:
+#         return redirect(url_for('login_page'))
+#
+#     # 2. Kết nối DB và lấy dữ liệu
+#     conn = get_db_connection()
+#     ds_lich_su = []
+#     if conn:
+#         try:
+#             cursor = conn.cursor(dictionary=True)
+#             # Lấy các cột: tên bệnh, độ tin cậy, đường dẫn ảnh và ngày tạo
+#             query = """SELECT ten_benh, do_tin_cay, duong_dan_anh, ngay_tao
+#                        FROM lich_su_chan_doan
+#                        WHERE idTaikhoan = %s
+#                        ORDER BY ngay_tao DESC"""
+#             cursor.execute(query, (user_id,))
+#             ds_lich_su = cursor.fetchall()
+#             cursor.close()
+#             conn.close()
+#         except Exception as e:
+#             print(f"Lỗi truy vấn lịch sử: {e}")
+#
+#     # 3. Trả dữ liệu về cho file HTML
+#     return render_template('lich_su.html', lich_su=ds_lich_su)
+
+
 
 
 @app.route('/chat', methods=['POST'])
@@ -265,5 +460,10 @@ def phan_loai_benh_ga_page():
     return render_template('phan_loai_benh_ga.html', username=session.get('username'))
 
 
+
+# @app.route('/lich-su')
+# def lich_su_page():
+#     # Chỉ trả về trang trắng/giao diện tĩnh để test chuyển trang
+#     return render_template('lich_su.html')
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

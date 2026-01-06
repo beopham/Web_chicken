@@ -4,32 +4,41 @@ import numpy as np
 import albumentations as A
 
 # --- CẤU HÌNH ---
-INPUT_DIR = r"D:\Hoc Ki Cuoi\Capstone-project-VKU\DataAugmentation\input\sal"
-OUTPUT_DIR =r"D:\Hoc Ki Cuoi\Capstone-project-VKU\DataAugmentation\output\Tangcuong_sal"
+INPUT_DIR =  r"D:\Hoc Ki Cuoi\Web_chicken\Data_Phan_Ga_Not_Phan_Ga\Non-Poop"
+OUTPUT_DIR = r"D:\Hoc Ki Cuoi\Web_chicken\Data_Phan_Ga_Not_Phan_Ga\tc_nonpoop"
 NUM_AUGMENTED_IMAGES_PER_ORIGINAL = 5  # Số ảnh mới tạo từ mỗi ảnh gốc
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 # -------------------
 
-# --- ĐỊNH NGHĨA PHÉP BIẾN ĐỔI (augmentation pipeline) ---
+# # --- ĐỊNH NGHĨA PHÉP BIẾN ĐỔI (augmentation pipeline) ---
+# transform = A.Compose([
+#     # 1️Biến đổi hình học
+#     A.Rotate(limit=30, p=0.8),  # Xoay ngẫu nhiên ±30 độ
+#     A.ShiftScaleRotate(
+#         shift_limit=0.2, scale_limit=0.15, rotate_limit=0,
+#         p=0.8, border_mode=cv2.BORDER_REPLICATE  # Không để viền đen
+#     ),
+#     A.HorizontalFlip(p=0.5),  # Lật ngang 50%
+#
+#     # 2️ Biến đổi màu sắc
+#     A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
+#     A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=30, val_shift_limit=20, p=0.7),
+#
+#     # 3Tăng cường bằng làm mờ / nhiễu
+#     A.GaussNoise(p=0.3),        # Nhiễu Gaussian nhẹ
+#     A.MotionBlur(blur_limit=3, p=0.2),  # Làm mờ nhẹ khi chuyển động
+#
+#
+# ])
+# Cấu hình quy trình tăng cường dữ liệu (Data Augmentation Pipeline)
 transform = A.Compose([
-    # 1️⃣ Biến đổi hình học
-    A.Rotate(limit=30, p=0.8),  # Xoay ngẫu nhiên ±30 độ
-    A.ShiftScaleRotate(
-        shift_limit=0.2, scale_limit=0.15, rotate_limit=0,
-        p=0.8, border_mode=cv2.BORDER_REPLICATE  # Không để viền đen
-    ),
-    A.HorizontalFlip(p=0.5),  # Lật ngang 50%
-
-    # 2️⃣ Biến đổi màu sắc
-    A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
-    A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=30, val_shift_limit=20, p=0.7),
-
-    # 3️⃣ Tăng cường bằng làm mờ / nhiễu
-    A.GaussNoise(p=0.3),        # Nhiễu Gaussian nhẹ
-    A.MotionBlur(blur_limit=3, p=0.2),  # Làm mờ nhẹ khi chuyển động
-
-
+    A.Rotate(limit=30, p=0.8), # Xoay ngẫu nhiên
+    A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.15, p=0.8), # Dịch chuyển & Thu phóng
+    A.HorizontalFlip(p=0.5), # Lật ngang
+    A.RandomBrightnessContrast(p=0.8), # Chỉnh độ sáng/tương phản
+    A.GaussNoise(p=0.3), # Thêm nhiễu Gaussian
+    A.MotionBlur(p=0.2), # Làm mờ do chuyển động
 ])
 
 print("[INFO] Bắt đầu quá trình tăng cường dữ liệu...")
