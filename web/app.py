@@ -3,8 +3,9 @@ import io
 import re
 import base64
 import numpy as np
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import mysql.connector
+import time
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
 # =================================================================
 # IMPORT AI & RAG TOOLKIT
@@ -44,127 +45,65 @@ DB_CONFIG = {
     'database': 'benh_ga'
 }
 
+FILTER_MODEL_PATH = r'D:\Hoc Ki Cuoi\Web_Chicken\web\model\Classify_model.keras'
 MODEL_PATH = r'D:\Hoc Ki Cuoi\Web_Chicken\web\model\best_model.keras'
-# ✅ Tên class khớp 100% với cột ten_benh trong MySQL
-# Đảm bảo thứ tự này khớp với thứ tự các Class khi bạn Train Model
-# Thứ tự chuẩn để khớp với Label của Model AI
 CLASS_NAMES = ['Bệnh Cầu Trùng', 'Gà Khỏe Mạnh', 'Bệnh Gà Rù', 'Bệnh Thương Hàn']
-IMG_HEIGHT = 224
-IMG_WIDTH = 224
+FILTER_CLASSES = ['No Poop', 'Poop']
+IMG_HEIGHT, IMG_WIDTH = 224, 224
 
 app = Flask(__name__)
 app.secret_key = 'capstone_chicken_ai_key_secret'
 
-model = None
+filter_model = model = None
 if tf is not None:
     try:
+        filter_model = tf.keras.models.load_model(FILTER_MODEL_PATH)
         model = tf.keras.models.load_model(MODEL_PATH)
-        print(f">>> ✅ Mô hình AI Chẩn đoán sẵn sàng.")
+        print(">>> ✅ Hệ thống AI (Lọc & Chẩn đoán) sẵn sàng.")
     except Exception as e:
         print(f"!!! LỖI TẢI MÔ HÌNH: {e}")
 
 
 # =================================================================
-# 1. QUẢN LÝ DATABASE & RAG (CẤU TRÚC 3 CỘT)
+# 1. HÀM HỖ TRỢ XỬ LÝ VĂN BẢN & AI
 # =================================================================
+
+def format_clean_text(text):
+    """Xử lý triệt để dấu sao và lỗi giãn dòng quá mức."""
+    # Xóa sạch các dấu sao và thăng định dạng Markdown
+    text = text.replace("**", "").replace("*", "").replace("#", "")
+
+    # Chuẩn hóa khoảng trắng đầu/cuối dòng
+    lines = [line.strip() for line in text.split('\n')]
+
+    # Loại bỏ các dòng trống dư thừa để nén văn bản gọn gàng
+    compact_lines = []
+    for line in lines:
+        if line or (compact_lines and compact_lines[-1]):
+            compact_lines.append(line)
+
+    return '\n'.join(compact_lines)
+
 
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        return conn
-    except mysql.connector.Error as err:
-        print(f"Lỗi kết nối database: {err}")
+        return mysql.connector.connect(**DB_CONFIG)
+    except mysql.connector.Error:
         return None
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        tk = request.form.get('taikhoan')
-        mk = request.form.get('mk')
 
-        conn = get_db_connection()
-        if conn:
-            cursor = conn.cursor(dictionary=True)
-            try:
-                # 1. Kiểm tra tài khoản đã tồn tại chưa
-                cursor.execute("SELECT * FROM user WHERE taikhoan = %s", (tk,))
-                existing_user = cursor.fetchone()
-
-                if existing_user:
-                    return render_template('register.html', error="Tài khoản này đã tồn tại!")
-
-                # 2. Nếu không trùng, thực hiện chèn dữ liệu
-                sql = "INSERT INTO user (taikhoan, matkhau) VALUES (%s, %s)"
-                cursor.execute(sql, (tk, mk))
-                conn.commit()
-
-                # --- ĐOẠN SỬA LẠI Ở ĐÂY ---
-                # Không dùng redirect, không dùng script chuyển trang.
-                # Trả về chính trang register.html kèm thông báo thành công.
-                return render_template('register.html', success="Đăng ký tài khoản thành công! Dữ liệu đã được lưu.")
-                # --------------------------
-
-            except Exception as e:
-                return f"Lỗi hệ thống: {e}"
-            finally:
-                cursor.close()
-                conn.close()
-
-    return render_template('register.html')
-
-
-
-
-def load_and_chunk_data():
-    """Đọc dữ liệu từ 3 cột MySQL và nạp vào Vector Database với định danh bệnh"""
-    global VECTOR_STORE
-    conn = get_db_connection()
-    if not conn: return
-
+def is_it_poop(base64_img_string):
+    if filter_model is None: return True
     try:
-        cursor = conn.cursor(dictionary=True)
-        # Truy vấn lấy cả tên bệnh và nội dung
-        query = "SELECT ten_benh, dulieubenh FROM benh"
-        cursor.execute(query)
-        data = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        img_data = re.sub('^data:image/.+;base64,', '', base64_img_string)
+        img_bytes = base64.b64decode(img_data)
+        img = image.load_img(io.BytesIO(img_bytes), target_size=(IMG_HEIGHT, IMG_WIDTH))
+        x = image.img_to_array(img) / 255.0
+        x = np.expand_dims(x, axis=0)
+        return FILTER_CLASSES[np.argmax(filter_model.predict(x)[0])] == 'Poop'
+    except:
+        return False
 
-        documents = []
-        for row in data:
-            # ✅ FIX 1: Dán tên bệnh vào nội dung để Vector hóa chính xác
-            content = f"THÔNG TIN VỀ {row['ten_benh'].upper()}: {row['dulieubenh']}"
-
-            # ✅ FIX 2: Chia nhỏ văn bản (Chunking) theo Token/Ký tự
-            # chunk_size=600 là vừa đủ một ý chính, overlap=50 giúp không mất ngữ cảnh
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=50)
-            chunks = text_splitter.split_text(content)
-
-            from langchain_core.documents import Document
-            for chunk in chunks:
-                # Lưu kèm metadata để sau này có thể lọc nếu cần
-                documents.append(Document(page_content=chunk, metadata={"source": row['ten_benh']}))
-
-        embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
-        # ✅ FIX 3: Lưu vào ChromaDB (Vector Database)
-        VECTOR_STORE = Chroma.from_documents(
-            documents=documents,
-            embedding=embeddings,
-            persist_directory="./chroma_db"
-        )
-        print(">>> ✅ Hệ thống RAG đã được cập nhật dữ liệu định danh bệnh.")
-    except Exception as e:
-        print(f"!!! LỖI RAG: {e}")
-
-@app.before_request
-def initialize_rag():
-    if VECTOR_STORE is None:
-        load_and_chunk_data()
-
-
-# =================================================================
-# 2. CHẨN ĐOÁN VÀ CHAT KHỞI TẠO
-# =================================================================
 
 def process_and_predict(base64_img_string):
     if model is None: return "Lỗi hệ thống", 0.0
@@ -174,278 +113,174 @@ def process_and_predict(base64_img_string):
         img = image.load_img(io.BytesIO(img_bytes), target_size=(IMG_HEIGHT, IMG_WIDTH))
         x = image.img_to_array(img) / 255.0
         x = np.expand_dims(x, axis=0)
-        predictions = model.predict(x)
-        idx = np.argmax(predictions[0])
-        return CLASS_NAMES[idx], np.max(predictions[0]) * 100
-    except Exception as e:
-        return f"Lỗi: {str(e)}", 0.0
+        preds = model.predict(x)
+        idx = np.argmax(preds[0])
+        return CLASS_NAMES[idx], np.max(preds[0]) * 100
+    except:
+        return "Lỗi", 0.0
 
 
-# @app.route('/diagnose', methods=['POST'])
-# def diagnose_and_start_chat():
-#     user_id = session.get('user_id')
-#     if not user_id: return jsonify({'error': 'Vui lòng đăng nhập'}), 401
-#
-#     try:
-#         data = request.get_json()
-#         predicted_name, confidence = process_and_predict(data.get('image'))
-#
-#         if predicted_name == "Healthy":
-#             return jsonify({
-#                 'success': True,
-#                 'prediction': {'disease': 'Khỏe mạnh', 'confidence': f'{confidence:.2f}%'},
-#                 'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh chuồng trại nhé!"
-#             })
-#
-#
-#         system_prompt = (
-#             "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ ĐẮC LỰC CỦA WEB CHICKEN AI.\n\n"
-#
-#             "KỶ LUẬT TRẢ LỜI (TRỊNH TRỌNG):\n"
-#             "1. TUYỆT ĐỐI không lấy râu ông nọ chắp cằm bà kia. Bệnh Gà Rù (Newcastle) và Cầu Trùng có phác đồ khác biệt hoàn toàn, không được nhầm lẫn.\n"
-#             "2. ƯU TIÊN thông tin từ Database (RAG). Nếu thiếu, hãy dùng kiến thức chuyên môn để bổ sung đầy đủ, không được từ chối trả lời bà con.\n\n"
-#
-#             "QUY ĐỊNH TRÌNH BÀY (ĐỂ GIAO DIỆN SẠCH GỌN):\n"
-#             "- TIÊU ĐỀ MỤC: Viết hoa có dấu, nằm riêng 1 dòng. Cách đoạn dưới 1 dòng trống.\n"
-#             "- DANH SÁCH: Mỗi ý con bắt đầu bằng dấu gạch ngang (-). \n"
-#             "- XUỐNG DÒNG: Sau mỗi dấu (-) BẮT BUỘC phải xuống dòng ngay lập tức. Mỗi dòng chỉ chứa 1 thông tin.\n"
-#             "- KHOẢNG CÁCH: Xuống dòng 2 lần giữa các mục lớn (Ví dụ: TRIỆU CHỨNG và PHÁC ĐỒ).\n"
-#             "- CẤM: Không dùng các ký tự *, #, ** hoặc dấu chấm tròn (•) để tránh lỗi hiển thị HTML.\n"
-#             "- PHONG CÁCH: Thân thiện với nông dân, chuyên nghiệp, ngắn gọn, rõ ràng."
-#         )
-#
-#
-#         chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
-#         ACTIVE_CHATS[user_id] = chat
-#
-#         initial_greeting = (
-#             f"Kết quả: Gà có khả năng mắc {predicted_name} ({confidence:.2f}%). "
-#             f"\n\nChào bạn, tôi là bác sĩ AI. Bạn có muốn tìm hiểu chi tiết triệu chứng và cách điều trị bệnh {predicted_name} ngay không?"
-#         )
-#
-#         return jsonify({
-#             'success': True,
-#             'prediction': {'disease': predicted_name, 'confidence': f'{confidence:.2f}%'},
-#             'initial_chat_response': initial_greeting
-#         })
-#
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
-
+# =================================================================
+# 2. CHẨN ĐOÁN & LIVE-WEB RAG
+# =================================================================
 
 @app.route('/diagnose', methods=['POST'])
 def diagnose_and_start_chat():
     user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'Vui lòng đăng nhập'}), 401
+    if not user_id: return jsonify({'error': 'Vui lòng đăng nhập'}), 401
 
     try:
         data = request.get_json()
         image_base64 = data.get('image')
-        if not image_base64:
-            return jsonify({'error': 'Không nhận được dữ liệu ảnh'}), 400
+        if not image_base64: return jsonify({'error': 'Thiếu ảnh'}), 400
 
-        # 1. GỌI MODEL AI DỰ ĐOÁN
+        if not is_it_poop(image_base64):
+            return jsonify({'success': False, 'error': 'Đây không phải ảnh phân gà. Hãy chụp lại!'})
+
         predicted_name, confidence = process_and_predict(image_base64)
 
-        # 2. XỬ LÝ LƯU ẢNH VÀ LƯU DATABASE
+        # Lưu lịch sử database
         conn = get_db_connection()
-        filename = ""
         if conn:
             try:
                 cursor = conn.cursor()
-
-                # Giải mã ảnh từ Base64
                 img_data = re.sub('^data:image/.+;base64,', '', image_base64)
-                img_bytes = base64.b64decode(img_data)
-
-                # Tạo tên file duy nhất để không bị trùng (dùng timestamp)
-                import time
                 filename = f"chandoan_{user_id}_{int(time.time())}.jpg"
-                file_path = os.path.join('static/uploads', filename)
-
-                # Tạo thư mục static/uploads nếu chưa tồn tại
-                if not os.path.exists('static/uploads'):
-                    os.makedirs('static/uploads')
-
-                # Lưu file ảnh vật lý
-                with open(file_path, 'wb') as f:
-                    f.write(img_bytes)
-
-                # Thực hiện Insert vào bảng lich_su_chan_doan
-                # Chia confidence cho 100 nếu bạn muốn lưu dạng 0.92 thay vì 92.0
-                sql = """INSERT INTO lich_su_chan_doan 
-                         (idTaikhoan, ten_benh, do_tin_cay, duong_dan_anh, ngay_tao) 
-                         VALUES (%s, %s, %s, %s, NOW())"""
+                if not os.path.exists('static/uploads'): os.makedirs('static/uploads')
+                with open(os.path.join('static/uploads', filename), 'wb') as f:
+                    f.write(base64.b64decode(img_data))
+                sql = "INSERT INTO lich_su_chan_doan (idTaikhoan, ten_benh, do_tin_cay, duong_dan_anh, ngay_tao) VALUES (%s, %s, %s, %s, NOW())"
                 cursor.execute(sql, (user_id, predicted_name, float(confidence / 100), filename))
                 conn.commit()
                 cursor.close()
                 conn.close()
             except Exception as db_e:
-                print(f"Lỗi Database: {db_e}")
-                # Vẫn tiếp tục chạy để trả về kết quả AI cho người dùng dù lưu DB lỗi
+                print(f"Lỗi DB: {db_e}")
 
-        # 3. LOGIC TRẢ LỜI CỦA GEMINI (GIỮ NGUYÊN NHƯ BẠN VIẾT)
+        # Định nghĩa URL nguồn dữ liệu (Live-Web RAG)
+        reference_urls = []
+        if predicted_name == 'Bệnh Cầu Trùng':
+            reference_urls = [
+                "https://goovetvn.com/tin/benh-cau-trung-o-ga-va-phac-do-dieu-tri-hieu-qua-nhat.html",
+                "https://chauthanhjsc.com.vn/phac-do-dieu-tri-cau-trung-o-ga",
+                "https://goovetvn.com/benh/benh-cau-trung-o-ga-va-cach-dieu-tri.html"
+            ]
+        elif predicted_name == 'Bệnh Gà Rù':
+            reference_urls = [
+                "https://goovetvn.com/tin/cach-tri-benh-ga-ru-bang-toi.html",
+                "https://khoathuy.vnua.edu.vn/4036.html",
+                "https://goovetvn.com/benh/benh-newcastle-tren-ga.html"
+            ]
+        elif predicted_name == 'Bệnh Thương Hàn':
+            reference_urls = [
+                "https://khoathuy.vnua.edu.vn/4036.html",
+                "https://goovetvn.com/benh/benh-thuong-han-o-ga-va-phac-do-dieu-tri.html",
+                "https://tantienvet.com/benh-thuong-han-ga-va-cach-phong-tri.html"
+            ]
+
         if predicted_name == "Gà Khỏe Mạnh":
             return jsonify({
                 'success': True,
                 'prediction': {'disease': 'Khỏe mạnh', 'confidence': f'{confidence:.2f}%'},
-                'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh chuồng trại nhé!"
+                'initial_chat_response': "Tuyệt vời! Kết quả cho thấy gà khỏe mạnh. Hãy duy trì vệ sinh tốt nhé!"
             })
 
+        # Cấu hình AI chuyên gia
         system_prompt = (
-            "BẠN LÀ CHUYÊN GIA THÚ Y GÀ - TRỢ LÝ ĐẮC LỰC CỦA WEB CHICKEN AI.\n\n"
-            "KỶ LUẬT TRẢ LỜI (TRỊNH TRỌNG):\n"
-            "1. TUYỆT ĐỐI không lấy râu ông nọ chắp cằm bà kia. Bệnh Gà Rù (Newcastle) và Cầu Trùng có phác đồ khác biệt hoàn toàn, không được nhầm lẫn.\n"
-            "2. ƯU TIÊN thông tin từ Database (RAG). Nếu thiếu, hãy dùng kiến thức chuyên môn để bổ sung đầy đủ, không được từ chối trả lời bà con.\n\n"
-            "QUY ĐỊNH TRÌNH BÀY (ĐỂ GIAO DIỆN SẠCH GỌN):\n"
-            "- TIÊU ĐỀ MỤC: Viết hoa có dấu, nằm riêng 1 dòng. Cách đoạn dưới 1 dòng trống.\n"
-            "- DANH SÁCH: Mỗi ý con bắt đầu bằng dấu gạch ngang (-). \n"
-            "- XUỐNG DÒNG: Sau mỗi dấu (-) BẮT BUỘC phải xuống dòng ngay lập tức. Mỗi dòng chỉ chứa 1 thông tin.\n"
-            "- KHOẢNG CÁCH: Xuống dòng 2 lần giữa các mục lớn (Ví dụ: TRIỆU CHỨNG và PHÁC ĐỒ).\n"
-            "- CẤM: Không dùng các ký tự *, #, ** hoặc dấu chấm tròn (•) để tránh lỗi hiển thị HTML.\n"
-            "- PHONG CÁCH: Thân thiện với nông dân, chuyên nghiệp, ngắn gọn, rõ ràng."
+            f"BẠN LÀ CHUYÊN GIA THÚ Y GÀ CỦA WEB CHICKEN AI.\n"
+            f"ĐỐI TƯỢNG: Người nuôi gà (xưng hô là 'bạn'). KHÔNG dùng 'bà con'.\n"
+            f"NHIỆM VỤ: Tổng hợp thông tin từ các URL để tư vấn về {predicted_name}.\n"
+            "YÊU CẦU ĐỊNH DẠNG:\n"
+            "1. TUYỆT ĐỐI KHÔNG dùng dấu sao (*), dấu thăng (#) hoặc Markdown.\n"
+            "2. TIÊU ĐỀ MỤC: Viết hoa có dấu, đứng riêng một dòng.\n"
+            "3. TRÌNH BÀY GỌN: Không xuống dòng dư thừa. Xuống dòng sau gạch ngang (-)."
         )
 
         chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
         ACTIVE_CHATS[user_id] = chat
 
-        initial_greeting = (
-            f"Kết quả: Gà có khả năng mắc {predicted_name} ({confidence:.2f}%). "
-            f"\n\nChào bạn, tôi là bác sĩ AI. Bạn có muốn tìm hiểu chi tiết triệu chứng và cách điều trị bệnh {predicted_name} ngay không?"
-        )
+        initial_query = [
+            f"Chẩn đoán: {predicted_name} ({confidence:.2f}%). Hãy chào bạn ấy và tổng hợp phác đồ điều trị chi tiết từ TẤT CẢ nguồn này:",
+            *reference_urls
+        ]
+
+        response = chat.send_message(initial_query)
+
+        # Làm sạch và nén văn bản trước khi gửi
+        clean_text = format_clean_text(response.text)
 
         return jsonify({
             'success': True,
             'prediction': {'disease': predicted_name, 'confidence': f'{confidence:.2f}%'},
-            'initial_chat_response': initial_greeting
+            'initial_chat_response': clean_text
         })
 
     except Exception as e:
-        print(f"Lỗi hệ thống: {e}")
         return jsonify({'error': str(e)}), 500
-
-
-@app.route('/lich-su')
-def lich_su_page():
-    # 1. Kiểm tra đăng nhập để bảo mật trang
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login_page'))
-
-    # 2. Kết nối DB và lấy dữ liệu lịch sử của riêng người dùng này
-    conn = get_db_connection()
-    ds_lich_su = []
-    if conn:
-        try:
-            cursor = conn.cursor(dictionary=True)
-            # Truy vấn lấy dữ liệu từ bảng lịch sử chẩn đoán
-            query = """SELECT ten_benh, do_tin_cay, duong_dan_anh, ngay_tao 
-                       FROM lich_su_chan_doan 
-                       WHERE idTaikhoan = %s 
-                       ORDER BY ngay_tao DESC"""
-            cursor.execute(query, (user_id,))
-            ds_lich_su = cursor.fetchall()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print(f"Lỗi truy vấn lịch sử: {e}")
-
-    # 3. Trả dữ liệu về cho file HTML
-    # QUAN TRỌNG: Thêm username=session.get('username') để hiện tên người dùng trên Navbar
-    return render_template(
-        'lich_su.html',
-        lich_su=ds_lich_su,
-        username=session.get('username')
-    )
-# @app.route('/lich-su')
-# def lich_su_page():
-#     # 1. Kiểm tra đăng nhập
-#     user_id = session.get('user_id')
-#     if not user_id:
-#         return redirect(url_for('login_page'))
-#
-#     # 2. Kết nối DB và lấy dữ liệu
-#     conn = get_db_connection()
-#     ds_lich_su = []
-#     if conn:
-#         try:
-#             cursor = conn.cursor(dictionary=True)
-#             # Lấy các cột: tên bệnh, độ tin cậy, đường dẫn ảnh và ngày tạo
-#             query = """SELECT ten_benh, do_tin_cay, duong_dan_anh, ngay_tao
-#                        FROM lich_su_chan_doan
-#                        WHERE idTaikhoan = %s
-#                        ORDER BY ngay_tao DESC"""
-#             cursor.execute(query, (user_id,))
-#             ds_lich_su = cursor.fetchall()
-#             cursor.close()
-#             conn.close()
-#         except Exception as e:
-#             print(f"Lỗi truy vấn lịch sử: {e}")
-#
-#     # 3. Trả dữ liệu về cho file HTML
-#     return render_template('lich_su.html', lich_su=ds_lich_su)
-
-
 
 
 @app.route('/chat', methods=['POST'])
 def handle_followup_chat():
     user_id = session.get('user_id')
     current_chat = ACTIVE_CHATS.get(user_id)
-    if not current_chat: return jsonify({'error': 'Phiên chat hết hạn'}), 400
+
+    if not current_chat:
+        system_prompt = "BẠN LÀ CHUYÊN GIA THÚ Y GÀ. Xưng hô là 'bạn'. Không dùng dấu sao."
+        current_chat = gemini_client.chats.create(model=LLM_MODEL, config={'system_instruction': system_prompt})
+        ACTIVE_CHATS[user_id] = current_chat
 
     try:
         data = request.get_json()
         user_question = data.get('question')
+        response = current_chat.send_message(user_question)
 
-        rag_docs = VECTOR_STORE.similarity_search(user_question, k=5)
-        rag_context = "\n---\n".join([doc.page_content for doc in rag_docs])
-
-        full_prompt = (
-            f"Bối cảnh dữ liệu từ Database:\n{rag_context}\n\n"
-            f"Câu hỏi của người dân: {user_question}\n\n"
-            "YÊU CẦU: Trình bày câu trả lời rõ ràng. "
-            "Sau mỗi dấu gạch ngang (-) bắt đầu ý mới, BẮT BUỘC phải xuống dòng. "
-            "Không dùng dấu sao (*)."
-        )
-
-        response = current_chat.send_message(full_prompt)
-
-        # Tìm bất kỳ dấu gạch ngang nào đứng sau một ký tự (không phải đầu dòng) và thêm xuống dòng
-        clean_response = re.sub(r'([^\n])\s*-\s+', r'\1\n- ', response.text)
-
-        # Xử lý thêm các dấu chấm dính liền với dấu gạch ngang
-        clean_response = clean_response.replace(". -", ".\n- ").replace("; -", ";\n- ")
+        # Áp dụng bộ lọc nén dòng và xóa dấu sao
+        clean_response = format_clean_text(response.text)
 
         return jsonify({'success': True, 'response': clean_response})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': "Hệ thống bận, hãy thử lại!"}), 500
 
 
-# Các route giao diện giữ nguyên...
-@app.route('/', methods=['GET', 'POST'])
+# =================================================================
+# 3. QUẢN LÝ GIAO DIỆN & TÀI KHOẢN
+# =================================================================
+
+@app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
     if request.method == 'POST':
-        taikhoan, mk = request.form.get('taikhoan'), request.form.get('mk')
+        tk, mk = request.form.get('taikhoan'), request.form.get('mk')
         conn = get_db_connection()
         if conn:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT idTaikhoan, taikhoan FROM user WHERE taikhoan = %s AND matkhau = %s", (taikhoan, mk))
+            cursor.execute("SELECT idTaikhoan, taikhoan FROM user WHERE taikhoan = %s AND matkhau = %s", (tk, mk))
             user = cursor.fetchone()
             conn.close()
             if user:
-                session['loggedin'], session['user_id'], session['username'] = True, user['idTaikhoan'], user[
-                    'taikhoan']
+                session.update({'loggedin': True, 'user_id': user['idTaikhoan'], 'username': user['taikhoan']})
                 return redirect(url_for('trangchu_page'))
     return render_template('login.html')
 
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        tk, mk = request.form.get('taikhoan'), request.form.get('mk')
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO user (taikhoan, matkhau) VALUES (%s, %s)", (tk, mk))
+            conn.commit()
+            conn.close()
+            return render_template('register.html', success="Đăng ký thành công!")
+    return render_template('register.html')
+
+
 @app.route('/logout')
 def logout_page():
-    session.clear()  # Xóa hết dữ liệu phiên đăng nhập
-    return redirect(url_for('trangchu_page'))
+    session.clear()
+    return redirect(url_for('login_page'))
 
 
 @app.route('/trangchu')
@@ -460,10 +295,18 @@ def phan_loai_benh_ga_page():
     return render_template('phan_loai_benh_ga.html', username=session.get('username'))
 
 
+@app.route('/lich-su')
+def lich_su_page():
+    user_id = session.get('user_id')
+    if not user_id: return redirect(url_for('login_page'))
+    conn, ds = get_db_connection(), []
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM lich_su_chan_doan WHERE idTaikhoan = %s ORDER BY ngay_tao DESC", (user_id,))
+        ds = cursor.fetchall()
+        conn.close()
+    return render_template('lich_su.html', lich_su=ds, username=session.get('username'))
 
-# @app.route('/lich-su')
-# def lich_su_page():
-#     # Chỉ trả về trang trắng/giao diện tĩnh để test chuyển trang
-#     return render_template('lich_su.html')
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -243,3 +243,18 @@ CREATE TABLE lich_su_chan_doan (
     -- CHỖ QUAN TRỌNG: Phải là idTaikhoan mới đúng
     FOREIGN KEY (idTaikhoan) REFERENCES user(idTaikhoan) 
 );
+
+
+
+CREATE TABLE benh_chuyen_gia (
+    id_benh INT AUTO_INCREMENT PRIMARY KEY,
+    ten_benh VARCHAR(100) NOT NULL,
+    dinh_nghia LONGTEXT,
+    nguyen_nhan LONGTEXT,
+    trieu_chung LONGTEXT,
+    cach_dieu_tri LONGTEXT,
+    thuoc_goi_y LONGTEXT,
+    phong_benh LONGTEXT,
+    muc_do_nguy_hiem VARCHAR(50),
+    ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
